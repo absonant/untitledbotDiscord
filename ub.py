@@ -13,6 +13,9 @@ import os, sys
 db_name = 'ub_main.sqlite'
 
 # Create connection to database
+if not (os.path.exists(db_name)):
+	print('Database doesn\'t exist. Run gen_db.py first to get everything set up.')
+	exit()
 db_conn	= sqlite3.connect(db_name)
 db_cur	= db_conn.cursor()
 print('  Opened a database connection on [' + db_name + '].')
@@ -56,6 +59,9 @@ class ub_td():
 		return (time.strftime('%Y-%m-%d', time.gmtime()))
 	def get_current_time_str():
 		return (time.strftime('%H:%M:%S', time.gmtime()))
+	def add(x_date, x_time, y_date, y_time):
+		# todo: fix
+		return 0
 
 @client.event
 def on_message(message):
@@ -120,6 +126,19 @@ def on_server_join(server):
 	await res = client.send_message(server.owner, 'untitledbot now recognises you as the owner of the server "{:s}". \
 		If you\'d rather leave bot setup to someone else, please use `u.setup.setdevrole <role_name>`. See the README at \
 		https://github.com/absonant/untitledbotDiscord if you need some help setting up.'.format(server.name))
+
+@client.event
+def on_ready():
+	found = False
+	for server in client.servers:
+		await c = db_conn.execute('''SELECT id, name from server''')
+		for server_in_db in c:
+			if (server_in_db[0] == server.id):
+				found = True
+		# todo: fix before running
+		if not found:
+			on_server_join(server)
+
 
 # Run the bot
 client.run(os.environ['DISCORD_UB_APITOKEN'])
