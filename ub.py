@@ -1,16 +1,21 @@
+#!/usr/bin/python
+
 # ub.py - untitledbot
 # Rebuilt from the ground up
 
 # Import stuff
-import datetime
+import time
 import discord
 import asyncio
 import sqlite3
 import os, sys
 
+db_name = 'ub_main.sqlite'
+
 # Create connection to database
-db	= sqlite3.connect('ub_main.db')
-cur	= db.cursor()
+db_conn	= sqlite3.connect(db_name)
+db_cur	= db_conn.cursor()
+print('  Opened a database connection on [' + db_name + '].')
 
 # Set constant strings
 ub_prefix = 'u.'
@@ -24,8 +29,9 @@ All commands must start with `u.`. EG: `u.help`.
 
 **Utility**
 `notifyme [x]`: Ping you if a message is sent in the current channel, optionally within `x` minutes. `x` defaults to 5. 
-`youtube x`: Search for `x` on YouTube. Sends back the top 3 links.
-`soundcloud x`: Search for `x` on SoundCloud. Sends back the top 3 links.
+`youtube x`: Search for `x` on YouTube. Sends the top 3 links.
+`soundcloud x`: Search for `x` on SoundCloud. Sends the top 3 links.
+`imgur x`: Search for `x` on imgur. Sends the first result.
 
 **Gaming**
 `iown`: Presents a list of games. Set which games you own, so other members can request to play.
@@ -37,18 +43,33 @@ All commands must start with `u.`. EG: `u.help`.
 `kick @abc#1234 [x]`: Kick the member "@abc#1234" from the current server, with an optional reason (`x`).
 `ban @abc#1234 x y`: Ban the member "@abc#1234" from the current server for `x` hours, with the reason `y`.
 '''
+ub_text_help_setup = '''**untitledbot - Set Me Up for Your Server**
+untitledbot is a utility bot, with community management, moderation, and other functions. I\'ve tried to make it as easy as possible to set up for your server, however it is complicated, so I recommend reading through this: https://github.com/absonant/untitledbotDiscord/README.md
+'''
 
 # Initialize the Discord API
 client = discord.Client()
+
+class ub_td():
+	# ub DateTime
+	def get_current_date_str():
+		return (time.strftime('%Y-%m-%d', time.gmtime()))
+	def get_current_time_str():
+		return (time.strftime('%H:%M:%S', time.gmtime()))
 
 @client.event
 def on_message(message):
 	# COMMANDS
 
+	# -- Setup
+
 	# -- Basics
 	if message.startswith(ub_prefix + 'help'):
 		await client.delete_message(message)
 		await res = client.send_message(message.author, ub_text_help)
+	elif message.startswith(ub_prefix + 'helpsetup'):
+		await client.delete_message(message)
+		await res = client.send_message(message.author, ub_text_help_setup)
 
 	# -- Utility
 	elif message.startswith(ub_prefix + 'notifyme'):
@@ -80,6 +101,26 @@ def on_message(message):
 			else
 				await client.delete_message(message)
 
+@client.event
+def on_server_join(server):
+	await db_cur.execute('''INSERT INTO server
+		(id,
+		name,
+		joindate,
+		lastactive,
+		perm_owner_id)
+		VALUES (?,?,?,?,?);''', \
+		(server.id,
+		server.name,
+		ub_td.get_current_date_str(),
+		(ub_td.get_current_date_str() + ' ' + ub_td.get_current_time_str()),
+		server.owner.id))
+	# commit changes
+	await db_conn.commit()
+	await res = client.send_message(server.owner, 'untitledbot now recognises you as the owner of the server "{:s}". \
+		If you\'d rather leave bot setup to someone else, please use `u.setup.setdevrole <role_name>`. See the README at \
+		https://github.com/absonant/untitledbotDiscord if you need some help setting up.'.format(server.name))
 
 # Run the bot
-client.run(os.environ['DISCORD_TOKEN_UB'])
+client.run(os.environ['DISCORD_UB_APITOKEN'])
+print(client.name + ' ({:s}) is listening...'.format(client.id))
