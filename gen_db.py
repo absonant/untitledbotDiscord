@@ -34,19 +34,26 @@ c.execute('''CREATE TABLE server(
 	field_rules		TEXT,
 	field_channels	TEXT,
 	field_more		TEXT,
-	field_tag_pre	TEXT);''')
+	field_tag_pre	TEXT
+	);''')
 
-# ID of the server that the member belongs to
+# combo_id = Combination of (server.id+' '+member.id)
+# ID of the server that this member is part of.
 # Member's Discord ID
 # Member's tags with server-specified prefixes, separated by commas
 # Is the member muted? (bool)
 # Date & time the member should be unmuted (2000-12-31 01:02)
 c.execute('''CREATE TABLE member
-	(server_id		TEXT				NOT NULL,
-	id				TEXT PRIMARY KEY	NOT NULL,
+	(combo_id		TEXT PRIMARY KEY	NOT NULL,
+	server_id		TEXT				NOT NULL,
+	id				TEXT				NOT NULL,
 	tags_csv		TEXT,
 	muted			INT,
-	unmute_time		TEXT);''')
+	unmute_time		TEXT,
+	is_mod			INT,
+	is_admin		INT,
+	is_owner		INT
+	);''')
 
 #c.execute('''CREATE TABLE alerts ();''')
 
